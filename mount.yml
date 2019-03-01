@@ -1,0 +1,50 @@
+---
+- name: Define Vars
+  set_fact:
+    disk_1: /dev/sdc
+    disk_2: /dev/sdd
+    gg_trails_path: /opt/gg_trails
+    gg_path: /opt/gg
+
+- name: dbvg volume group creation
+  lvg:  vg=dbvg  pvs={{ disk_1 }}
+  become: yes
+
+- name: db00 lvm creation
+  become: yes
+  lvol:
+       vg: dbvg
+       lv: db00
+       size: 64G
+
+- name: create file system for db00
+  become: yes
+  filesystem:
+        fstype: ext4
+        dev: /dev/dbvg/db00
+
+- name: mount db00 logical volumes
+  become: yes
+  mount:  path={{ gg_path }}  src=/dev/dbvg/db00 fstype=ext4 state=mounted
+        
+        
+- name: dbvgtrail volume group creation
+  lvg:  vg=dbvgtrail  pvs={{ disk_2 }}
+  become: yes
+
+- name: db01 lvm creation
+  become: yes
+  lvol:
+       vg: dbvgtrail
+       lv: db01
+       size: 1000G
+
+- name: create file system for db01
+  become: yes
+  filesystem:
+        fstype: ext4
+        dev: /dev/dbvgtrail/db01
+
+- name: mount db01 logical volumes
+  become: yes
+  mount:  path={{ gg_trails_path }}  src=/dev/dbvgtrail/db01 fstype=ext4 state=mounted

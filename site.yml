@@ -1,0 +1,130 @@
+---
+- hosts: localhost
+  remote_user: "{{username}}"
+  vars:
+    tmp_directory: /tmp
+    ogg_download_url: "https://mazconfigmanagement.blob.core.windows.net/goldengatebinaries/OGG_BigData_Linux_x64_12.3.2.1.1.zip"
+    installation_dir: "/opt/gg"
+    installation_dir_tails: "/opt/gg_trails"
+    new_group: dba
+    
+  tasks:
+
+   - name: Install software packages 
+     yum: pkg={{item}} state=latest
+     become: yes
+     ignore_errors: yes
+     with_items:
+        - java-1.8.0-openjdk
+        - zip
+
+   - shell: /bin/yum install -y java-1.8.0-openjdk.x86_64
+     become: yes
+     ignore_errors: yes
+
+
+   - name:  5.a Install the Confluent Platform public key. This key is used to sign packages in the YUM repository.
+     shell: /usr/bin/rpm --import https://packages.confluent.io/rpm/5.0/archive.key
+     ignore_errors: yes
+     become: yes
+  
+   - name: Create installation directory
+     file: path={{ installation_dir }} state=absent
+     become: yes
+
+
+   - name: Global Env Configuration
+     lineinfile: dest=/etc/environment line={{item.lines}}
+     become: yes
+     with_items:
+        - {lines: 'export JAVA_HOME=/usr/lib/jvm/jre-1.8.0-openjdk'}
+        - {lines: 'export PATH=$JAVA_HOME/bin:$PATH'}
+        - {lines: 'export CLASSPATH=$JAVA_HOME/lib:$JRE_HOME/lib:./'}
+        - {lines: 'export PATH=$PATH:/bin:/usr/bin'}
+        - {lines: 'export PATH'}
+        - {lines: 'export LD_LIBRARY_PATH=/usr/lib/jvm/jre/lib/amd64/libjsig.so:/usr/lib/jvm/jre/lib/amd64/server/libjvm.so:/usr/lib/jvm/jre/lib/amd64/server:/usr/lib/jvm/jre/lib/amd64'}
+
+   - name: get the username running the deploy
+     become: false
+     local_action: command whoami
+     register: username_on_the_host
+   - name: get the username running the deploy
+     become: false
+     local_action: command whoami
+     register: username_on_the_host
+
+   - debug: var=username_on_the_host.stdout_lines
+   
+   
+   - name: Create/opt/gg directory
+     file: path={{ installation_dir }} state=directory   mode=755 owner={{username}}
+     become: yes
+     register: installation_path
+     
+   - name: Create /opt/gg_trails directory
+     file: path={{ installation_dir_tails }} state=directory   mode=755 owner={{username}} group={{new_group}}
+     become: yes
+     register: installation_path
+    
+   - name: Ensure group "somegroup" exists
+     group: name={{ new_group }} state=present
+     become: yes
+     
+   - name: adding existing user '{{ user }}' to group sudo
+     user:  name={{ username }} groups={{ new_group }} append=yes
+     become: yes
+   
+   - name: Download OGG
+     get_url: url={{ ogg_download_url }} dest={{ installation_dir }}
+     become: yes
+
+
+   #- name: Coping the OGG_BigData_Linux_x64_12.3.2.1.1 zip file to home dir
+   #  copy: src=files/OGG_BigData_Linux_x64_12.3.2.1.1.zip dest=/home/{{username}}/ogg mode=0777
+
+   - name: unzip the OGG
+     shell: cd {{ installation_dir }} && unzip OGG_BigData_Linux_x64_12.3.2.1.1.zip
+     become: yes
+     
+   - name: untar the OGG
+     shell: cd {{ installation_dir }} && tar -xvf OGG_BigData_Linux_x64_12.3.2.1.1.tar
+     become: yes
+
+   - name: Create the script to re-build synonyms (after import)
+     template:
+         src:  ggsci_run_extract.j2
+         dest: "{{ tmp_directory }}/ggsci_run_extract.sh"
+         mode: 0700
+   - name: Run the scipt
+     command: "{{ tmp_directory }}/ggsci_run_extract.sh"
+     register: output
+     become: yes
+
+   - debug: var=output
+
+
+   - name:  5.a Install the Confluent Platform public key. This key is used to sign packages in the YUM repository.
+     shell: /usr/bin/rpm --import https://packages.confluent.io/rpm/5.0/archive.key
+     ignore_errors: yes
+     become: yes
+
+   - name: 5.b Add the repository to your /etc/yum.repos.d/ directory in a file named confluent.repo
+     template: src=templates/confluent.repo.j2 dest=/etc/yum.repos.d/confluent.repo
+     become: yes
+
+   - name: Setup .bash_profile
+     template: src=templates/bash_profile.j2 dest=/home/{{username}}/.bash_profile
+     become: yes
+
+   - name: Clean yum
+     shell: /bin/yum clean all
+     ignore_errors: yes
+     become: yes
+     
+   - name: Create group and add 
+     shell: chown -R {{username}}:{{ new_group }} {{ installation_dir }}
+     become: yes
+    
+   - include: mount.yml
+                           
+
