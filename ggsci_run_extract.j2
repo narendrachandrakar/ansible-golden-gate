@@ -1,0 +1,18 @@
+#!/bin/bash
+# Create GG source processes
+
+export JAVA_HOME=/usr/lib/jvm/jre-1.8.0-openjdk
+export JRE_HOME=/usr/lib/jvm/jre
+export CLASSPATH=$JAVA_HOME/lib:$JRE_HOME/lib:./
+export OGG=/opt/gg
+export LD_LIBRARY_PATH=/usr/lib/jvm/jre/lib/amd64/libjsig.so:/usr/lib/jvm/jre/lib/amd64/server/libjvm.so:/usr/lib/jvm/jre/lib/amd64/server:/usr/lib/jvm/jre/lib/amd64
+ 
+PATH=$PATH:$HOME/.local/bin:$HOME/bin
+export PATH
+
+
+cd {{ installation_dir }}
+./ggsci <<EOF
+create subdirs
+
+EOF

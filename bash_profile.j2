@@ -1,0 +1,17 @@
+export JAVA_HOME=/usr/lib/jvm/jre-1.8.0-openjdk
+export JRE_HOME=/usr/lib/jvm/jre
+export CLASSPATH=$JAVA_HOME/lib:$JRE_HOME/lib:./
+export OGG=/$HOME/ogg
+export LD_LIBRARY_PATH=/usr/lib/jvm/jre/lib/amd64/libjsig.so:/usr/lib/jvm/jre/lib/amd64/server/libjvm.so:/usr/lib/jvm/jre/lib/amd64/server:/usr/lib/jvm/jre/lib/amd64
+
+export PATH=$PATH:/bin:/usr/bin 
+export PATH
+ 
+export GG_HOME=/$HOME/ogg
+alias cdgg='cd $GG_HOME'
+alias ggsci='cd $GG_HOME; ./ggsci; cd -;'
+alias cdprm='cd $GG_HOME/dirprm'
+alias cddat='cd $GG_HOME/dirdat'
+alias cdrpt='cd $GG_HOME/dirrpt'
+alias ggalert='vi $GG_HOME/ggserr.log'
+alias ggalertf='tail -f $GG_HOME/ggserr.log'
